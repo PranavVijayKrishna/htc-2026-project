@@ -3,3 +3,11 @@ uvicorn
 sqlalchemy
 asyncpg
 psycopg2-binary
+python-dotenv
+pydantic
+rapidfuzz
+praw
+httpx
+beautifulsoup4
+tenacity
+pytrends
