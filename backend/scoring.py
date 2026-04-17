@@ -43,11 +43,6 @@ POP_CATEGORIES = {
     ]
 }
 
-# High tariff / trade risk countries
-HIGH_TARIFF_COUNTRIES = [
-    "china", "russia", "iran", "north korea", "venezuela"
-]
-
 # Scoring weights
 DEFAULT_WEIGHTS = {
     "growth": 0.35,
@@ -92,12 +87,6 @@ def get_angle(term: str) -> tuple[str, str]:
 
     return "distribute", f"Source existing {term} product from compliant supplier"
 
-
-def apply_tariff_penalty(country_of_origin: str) -> float:
-    """Returns penalty based on trade risk of origin country."""
-    if country_of_origin.lower() in HIGH_TARIFF_COUNTRIES:
-        return 0.15
-    return 0.0
 
 
 def generate_rationale(
@@ -147,7 +136,6 @@ def score_opportunity(
 
     angle, suggestion = get_angle(term)
     rationale = generate_rationale(term, category, growth, angle, suggestion)
-    tariff_flagged = country_of_origin.lower() in HIGH_TARIFF_COUNTRIES
 
     return {
         "term": term,
@@ -156,7 +144,7 @@ def score_opportunity(
         "angle": angle,
         "suggestion": suggestion,
         "rationale": rationale,
-        "tariff_flagged": tariff_flagged,
+        "tariff_flagged": False,  # P2 handles this, placeholder for now
         "country_of_origin": country_of_origin,
         "components": {
             "growth": round(growth, 2),
