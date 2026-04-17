@@ -5,6 +5,8 @@ Endpoints:
   GET  /api/trends                list top trends with scores + compliance
   GET  /api/products              list scraped products with flags
   GET  /api/recommendations       P2/P3 facing: top opportunities for PoP
+  GET  /api/admin/weights         read current scoring weights
+  POST /api/admin/weights         live weight tuning (demo moment — re-orders instantly)
   POST /api/admin/refresh         trigger full pipeline re-run (admin only)
   POST /api/admin/refresh?source= trigger single-source re-run
 
@@ -17,6 +19,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
@@ -28,6 +31,32 @@ from db.models import Trend, Product, ComplianceFlag, Category
 from pipeline.runner import run_pipeline
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
+
+# Live-tunable weights — P3 demo moment (shift on stage, rankings re-order instantly)
+_current_weights = {
+    "growth":          0.35,
+    "relevance":       0.25,
+    "cross_signal":    0.20,
+    "competition_gap": 0.15,
+    "recency":         0.05,
+}
+
+_VALID_WEIGHT_KEYS = set(_current_weights.keys())
+
+
+class WeightsPayload(BaseModel):
+    growth:          float
+    relevance:       float
+    cross_signal:    float
+    competition_gap: float
+    recency:         float
+
+    @field_validator("growth", "relevance", "cross_signal", "competition_gap", "recency")
+    @classmethod
+    def between_zero_and_one(cls, v: float) -> float:
+        if not (0.0 <= v <= 1.0):
+            raise ValueError("Each weight must be between 0 and 1")
+        return v
 
 app = FastAPI(
     title="PoP Trend Intelligence API",
@@ -143,45 +172,73 @@ async def get_products(
 # ─────────────────────────────────────────────────────────────
 @app.get("/api/recommendations")
 async def get_recommendations(
-    session: AsyncSession = Depends(get_session),
+    category:  Optional[str] = Query(None),
+    angle:     Optional[str] = Query(None, description="distribute | develop"),
+    min_score: float         = Query(0.0),
+    limit:     int           = Query(20, ge=1, le=100),
+    session:   AsyncSession  = Depends(get_session),
 ):
     """
-    Returns top 20 trends with compliance status and action recommendations.
-    This is the main endpoint for the P3 buyer dashboard.
+    Returns top trends ranked by composite score computed on-the-fly from
+    _current_weights — so a POST /api/admin/weights re-orders results instantly.
     """
-    # Top trends by composite score
     result = await session.execute(
-        select(Trend)
-        .where(Trend.raw_signal_score > 0)
-        .order_by(desc(Trend.raw_signal_score))
-        .limit(20)
+        select(Trend).where(Trend.raw_signal_score > 0).limit(200)
     )
     trends = result.scalars().all()
 
-    recommendations = []
+    w = _current_weights
+    scored = []
+
     for trend in trends:
         meta = trend.meta_json or {}
-        dev_opp = meta.get("dev_opportunity", {})
 
-        # Determine action
-        action   = dev_opp.get("action", "investigate")
-        pop_line = dev_opp.get("pop_line", "")
-        concept  = dev_opp.get("concept", f"Investigate {trend.term}")
+        # Pull normalized sub-scores stored by scorer.py (all 0–100)
+        gt_norm  = meta.get("gt_score_norm",     0.0) / 100
+        r_norm   = meta.get("reddit_score_norm",  0.0) / 100
+        gr_norm  = meta.get("growth_norm",        0.0) / 100
+        # cross_signal: 1.0 if seen in both GT + Reddit, else 0
+        cross    = 1.0 if (gt_norm > 0 and r_norm > 0) else 0.0
 
-        rec = {
-            "term":           trend.term,
-            "score":          trend.raw_signal_score,
-            "growth_pct":     trend.growth_rate,
-            "action":         action,          # "develop" | "distribute" | "investigate"
-            "pop_line":       pop_line,        # "Ginger" | "Ginseng" | ""
-            "concept":        concept,
-            "why_relevant":   _build_rationale(trend, meta),
-            "confidence":     trend.source_confidence,
-            "sources_seen":   meta.get("source", trend.source),
-        }
-        recommendations.append(rec)
+        composite = (
+            w["growth"]          * gr_norm +
+            w["relevance"]       * gt_norm +
+            w["cross_signal"]    * cross   +
+            w["competition_gap"] * 0.5     +  # placeholder until Amazon data lands
+            w["recency"]         * 1.0         # all current data is recent
+        )
 
-    return {"count": len(recommendations), "recommendations": recommendations}
+        dev_opp  = meta.get("dev_opportunity", {})
+        rec_angle = dev_opp.get("action", "distribute")
+
+        if angle and rec_angle != angle:
+            continue
+
+        scored.append({
+            "term":         trend.term,
+            "score":        round(composite * 10, 2),
+            "growth_pct":   trend.growth_rate,
+            "angle":        rec_angle,
+            "pop_line":     dev_opp.get("pop_line", ""),
+            "concept":      dev_opp.get("concept", f"Investigate {trend.term}"),
+            "why_relevant": _build_rationale(trend, meta),
+            "confidence":   trend.source_confidence,
+            "sources_seen": meta.get("source", trend.source),
+            "components": {
+                "growth":          round(gr_norm, 2),
+                "relevance":       round(gt_norm, 2),
+                "cross_signal":    round(cross,   2),
+                "competition_gap": 0.5,
+                "recency":         1.0,
+            },
+        })
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    filtered = [r for r in scored if r["score"] >= min_score]
+    if category:
+        filtered = [r for r in filtered if category.lower() in r["term"].lower()]
+
+    return {"count": len(filtered), "recommendations": filtered[:limit]}
 
 
 def _build_rationale(trend: Trend, meta: dict) -> str:
@@ -204,6 +261,27 @@ def _build_rationale(trend: Trend, meta: dict) -> str:
         parts.append("Emerging signal across multiple sources")
 
     return "; ".join(parts)
+
+
+# ─────────────────────────────────────────────────────────────
+# GET /api/admin/weights  — read current weights
+# POST /api/admin/weights — live weight tuning (demo moment)
+# ─────────────────────────────────────────────────────────────
+@app.get("/api/admin/weights")
+async def get_weights():
+    return _current_weights
+
+
+@app.post("/api/admin/weights")
+async def update_weights(
+    payload: WeightsPayload,
+    x_admin_secret: str = Header(...),
+):
+    if x_admin_secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+
+    _current_weights.update(payload.model_dump())
+    return {"msg": "Weights updated", "weights": _current_weights}
 
 
 # ─────────────────────────────────────────────────────────────
