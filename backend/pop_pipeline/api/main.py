@@ -197,16 +197,20 @@ async def get_recommendations(
         gt_norm  = meta.get("gt_score_norm",     0.0) / 100
         r_norm   = meta.get("reddit_score_norm",  0.0) / 100
         gr_norm  = meta.get("growth_norm",        0.0) / 100
-        # cross_signal: 1.0 if seen in both GT + Reddit, else 0
         cross    = 1.0 if (gt_norm > 0 and r_norm > 0) else 0.0
 
-        composite = (
-            w["growth"]          * gr_norm +
-            w["relevance"]       * gt_norm +
-            w["cross_signal"]    * cross   +
-            w["competition_gap"] * 0.5     +  # placeholder until Amazon data lands
-            w["recency"]         * 1.0         # all current data is recent
-        )
+        sub_scores_missing = (gt_norm == 0 and r_norm == 0 and gr_norm == 0)
+        if sub_scores_missing:
+            # Scorer hasn't run yet — fall back to raw_signal_score directly
+            composite = (trend.raw_signal_score or 0) / 100
+        else:
+            composite = (
+                w["growth"]          * gr_norm +
+                w["relevance"]       * gt_norm +
+                w["cross_signal"]    * cross   +
+                w["competition_gap"] * 0.5     +
+                w["recency"]         * 1.0
+            )
 
         dev_opp  = meta.get("dev_opportunity", {})
         rec_angle = dev_opp.get("action", "distribute")
