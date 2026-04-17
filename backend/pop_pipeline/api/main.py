@@ -23,6 +23,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
@@ -31,6 +32,9 @@ from db.models import Trend, Product, ComplianceFlag, Category
 from pipeline.runner import run_pipeline
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
+
+_groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+_rationale_cache: dict = {}
 
 # Live-tunable weights — P3 demo moment (shift on stage, rankings re-order instantly)
 _current_weights = {
@@ -225,7 +229,13 @@ async def get_recommendations(
             "angle":        rec_angle,
             "pop_line":     dev_opp.get("pop_line", ""),
             "concept":      dev_opp.get("concept", f"Investigate {trend.term}"),
-            "why_relevant": _build_rationale(trend, meta),
+            "why_relevant": _build_llm_rationale(
+                trend.term,
+                dev_opp.get("pop_line", "health & wellness"),
+                trend.growth_rate or 0,
+                rec_angle,
+                dev_opp.get("concept", f"Investigate {trend.term}"),
+            ),
             "confidence":   trend.source_confidence,
             "sources_seen": meta.get("source", trend.source),
             "components": {
@@ -245,26 +255,29 @@ async def get_recommendations(
     return {"count": len(filtered), "recommendations": filtered[:limit]}
 
 
-def _build_rationale(trend: Trend, meta: dict) -> str:
-    """Human-readable explanation of why this trend is relevant to PoP."""
-    parts = []
-    gt_score = meta.get("gt_score_norm", 0)
-    r_score  = meta.get("reddit_score_norm", 0)
-    growth   = trend.growth_rate or 0
+def _build_llm_rationale(term: str, category: str, growth_pct: float, angle: str, concept: str) -> str:
+    if term in _rationale_cache:
+        return _rationale_cache[term]
+    try:
+        prompt = f"""You are a product buyer advisor for Prince of Peace (PoP), a CPG distributor selling health foods, herbal teas, ginseng, ginger, and wellness products.
 
-    if gt_score > 60:
-        parts.append(f"High Google search volume ({gt_score:.0f}/100)")
-    if r_score > 40:
-        parts.append(f"Active Reddit discussion ({r_score:.0f}/100 engagement)")
-    if growth > 20:
-        parts.append(f"Growing fast (+{growth:.0f}% in 2 weeks)")
-    elif growth < -20:
-        parts.append(f"Declining trend ({growth:.0f}%)")
+Trending term: {term}, Category: {category}, Growth: +{growth_pct}%, Action: {angle}, Concept: {concept}
 
-    if not parts:
-        parts.append("Emerging signal across multiple sources")
+Write exactly 2 sentences for a non-technical buyer:
+1. Why this trend matters for PoP right now
+2. What specific action to take"""
+        response = _groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
+            temperature=0.7,
+        )
+        rationale = response.choices[0].message.content.strip()
+        _rationale_cache[term] = rationale
+        return rationale
+    except Exception:
+        return f"{term.title()} is growing {growth_pct:.0f}% week-over-week. Review for sourcing feasibility."
 
-    return "; ".join(parts)
 
 
 # ─────────────────────────────────────────────────────────────
