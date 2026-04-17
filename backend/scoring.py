@@ -101,12 +101,12 @@ def generate_rationale(
 
     if angle == "develop":
         return (
-            f"{term.title()} is growing {growth_pct}% week-over-week in the "
+            f"{term.capitalize()} is growing {growth_pct}% week-over-week in the "
             f"{category} category. {suggestion}."
         )
     else:
         return (
-            f"{term.title()} is growing {growth_pct}% week-over-week in the "
+            f"{term.capitalize()} is growing {growth_pct}% week-over-week in the "
             f"{category} category. {suggestion} — review for sourcing feasibility."
         )
 
