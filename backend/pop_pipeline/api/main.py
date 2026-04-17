@@ -259,13 +259,20 @@ def _build_llm_rationale(term: str, category: str, growth_pct: float, angle: str
     if term in _rationale_cache:
         return _rationale_cache[term]
     try:
-        prompt = f"""You are a product buyer advisor for Prince of Peace (PoP), a CPG distributor selling health foods, herbal teas, ginseng, ginger, and wellness products.
+        prompt = f"""You are a CPG buyer at Prince of Peace. Write exactly 2 bullet points about this trend opportunity.
 
-Trending term: {term}, Category: {category}, Growth: +{growth_pct}%, Action: {angle}, Concept: {concept}
+Data: {term} | +{growth_pct}% growth | {category} | {angle} | {concept}
 
-Write exactly 2 sentences for a non-technical buyer:
-1. Why this trend matters for PoP right now
-2. What specific action to take"""
+Rules:
+- Max 12 words per bullet
+- Bullet 1: what the data signals (must include {growth_pct}%)
+- Bullet 2: one specific next action for PoP
+- No filler words like "significant", "capitalize", "leverage"
+- Write like a analyst note, not marketing copy
+
+Example format:
+- [term] surging {growth_pct}% — [one insight about why]
+- [specific action]: [who/what/where]"""
         response = _groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
