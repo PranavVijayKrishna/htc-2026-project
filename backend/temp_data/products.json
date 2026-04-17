@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "name": "Fresh Basil Extract",
+    "ingredients": ["basil"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 2
+  },
+  {
+    "id": 2,
+    "name": "Organic Ashwagandha Capsules",
+    "ingredients": ["ashwagandha"],
+    "country_of_origin": "India",
+    "shelf_life_months": 24
+  },
+  {
+    "id": 3,
+    "name": "Ephedra Energy Drink",
+    "ingredients": ["ephedra", "caffeine"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 18
+  },
+  {
+    "id": 4,
+    "name": "Ginger Wellness Tea",
+    "ingredients": ["ginger", "green tea"],
+    "country_of_origin": "China",
+    "shelf_life_months": 36
+  },
+  {
+    "id": 5,
+    "name": "Sea Moss Gummies",
+    "ingredients": ["sea moss", "pectin", "sugar"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 18
+  },
+  {
+    "id": 6,
+    "name": "Fresh Pressed Wheatgrass Juice",
+    "ingredients": ["wheatgrass"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 1
+  },
+  {
+    "id": 7,
+    "name": "Ginseng Energy Chews",
+    "ingredients": ["ginseng", "glucose"],
+    "country_of_origin": "South Korea",
+    "shelf_life_months": 24
+  },
+  {
+    "id": 8,
+    "name": "Aristolochic Herb Blend",
+    "ingredients": ["aristolochic acid", "ginger"],
+    "country_of_origin": "Vietnam",
+    "shelf_life_months": 24
+  },
+  {
+    "id": 9,
+    "name": "Kombucha Ginger Brew",
+    "ingredients": ["kombucha culture", "ginger", "green tea"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 6
+  },
+  {
+    "id": 10,
+    "name": "Turmeric Golden Milk Powder",
+    "ingredients": ["turmeric", "black pepper", "coconut milk"],
+    "country_of_origin": "India",
+    "shelf_life_months": 24
+  },
+  {
+    "id": 11,
+    "name": "Reishi Mushroom Tincture",
+    "ingredients": ["reishi mushroom", "alcohol"],
+    "country_of_origin": "China",
+    "shelf_life_months": 36
+  },
+  {
+    "id": 12,
+    "name": "Collagen Peptide Creamer",
+    "ingredients": ["collagen peptides", "coconut oil", "vanilla"],
+    "country_of_origin": "Brazil",
+    "shelf_life_months": 18
+  },
+  {
+    "id": 13,
+    "name": "Matcha Green Tea Powder",
+    "ingredients": ["matcha"],
+    "country_of_origin": "Japan",
+    "shelf_life_months": 12
+  },
+  {
+    "id": 14,
+    "name": "Lion's Mane Mushroom Coffee",
+    "ingredients": ["lion's mane", "arabica coffee"],
+    "country_of_origin": "USA",
+    "shelf_life_months": 24
+  },
+  {
+    "id": 15,
+    "name": "Herbal Sleep Tincture",
+    "ingredients": ["valerian root", "chamomile", "passionflower"],
+    "country_of_origin": "Russia",
+    "shelf_life_months": 18
+  }
+]
