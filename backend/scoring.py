@@ -7,9 +7,9 @@ POP_CORE_INGREDIENTS = [
 
 POP_CATEGORIES = {
     "ginseng": [
-        "ginseng", "american ginseng", "korean ginseng", "ginseng extract",
-        "ginseng powder", "ginseng candy", "ginseng tea", "adaptogen",
-        "ashwagandha", "eleuthero", "rhodiola"
+    "ginseng", "american ginseng", "korean ginseng", "ginseng extract",
+    "ginseng powder", "ginseng candy", "ginseng tea",
+    "ashwagandha", "eleuthero", "rhodiola"
     ],
     "teas": [
         "tea", "green tea", "black tea", "herbal tea", "chamomile",
@@ -21,10 +21,13 @@ POP_CATEGORIES = {
         "gummy", "chew", "snack bar", "dried fruit", "fruit snack"
     ],
     "health & wellness": [
-        "reishi", "mushroom", "probiotic", "prebiotic", "collagen",
-        "sea moss", "elderberry", "turmeric", "lion's mane", "chaga",
-        "adaptogens", "immune", "supplement", "vitamin", "fiber", "protein"
-    ],
+    "reishi", "mushroom", "probiotic", "prebiotic", "collagen",
+    "sea moss", "elderberry", "turmeric", "lion's mane", "chaga",
+    "adaptogens", "immune", "supplement", "vitamin", "fiber", "protein",
+    "cordyceps", "inositol", "magnesium", "berberine", "spermidine",
+    "urolithin", "quercetin", "electrolyte", "nmn", "spirulina",
+    "moringa", "black seed", "ashwagandha", "adaptogen"
+    ],  
     "candy & confections": [
         "candy", "lozenge", "gummi", "chocolate", "biscuit", "cookie",
         "wafer", "shortbread", "mooncake", "loquat candy", "honey candy"
