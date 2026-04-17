@@ -1,0 +1,58 @@
+{
+  "restricted_ingredients": [
+    "1,3-dimethylamylamine",
+    "2,4-dinitrophenol",
+    "acacia rigidula",
+    "aegeline",
+    "amanita muscaria",
+    "androstenedione",
+    "aristolochic acid",
+    "bmpea",
+    "coltsfoot",
+    "comfrey",
+    "dehydroepiandrosterone",
+    "delta-8 thc",
+    "delta-9 thc",
+    "deterenol",
+    "dmaa",
+    "dmba",
+    "dmha",
+    "dnp",
+    "ephedra",
+    "ephedrine",
+    "kava",
+    "kratom",
+    "lead acetate",
+    "life root",
+    "octodrine",
+    "phenolphthalein",
+    "sibutramine",
+    "sildenafil",
+    "tadalafil",
+    "tansy ragwort",
+    "thc",
+    "tianeptine",
+    "vardenafil"
+  ],
+  "high_tariff_countries": {
+    "china": "Section 301 tariffs (up to 145%) \u2014 supply chain risk",
+    "russia": "Comprehensive sanctions \u2014 avoid",
+    "north korea": "Full embargo",
+    "iran": "Comprehensive sanctions",
+    "belarus": "Significant sanctions",
+    "myanmar": "Import restrictions",
+    "cuba": "US embargo",
+    "venezuela": "Targeted sanctions"
+  },
+  "moderate_risk_countries": {
+    "india": "Occasional FDA import alerts; verify GMP certification",
+    "vietnam": "Some tariff exposure; verify supplier",
+    "indonesia": "Monitor for new tariff orders",
+    "bangladesh": "Labor/quality concerns; verify"
+  },
+  "last_updated": "2026-04-17T04:42:17.748845+00:00",
+  "sources": [
+    "dietary_supplement_alerts",
+    "tainted_products"
+  ]
+}
