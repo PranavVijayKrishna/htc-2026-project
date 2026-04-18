@@ -12,3 +12,4 @@ beautifulsoup4
 tenacity
 pytrends
 groq
+duckduckgo-search
