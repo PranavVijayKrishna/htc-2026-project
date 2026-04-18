@@ -21,7 +21,19 @@ from db.models import Trend, Product
 from utils.seed_terms import DEVELOPMENT_SIGNAL_TERMS
 
 
-# Development opportunity: if these keywords overlap with trending terms
+import json
+from pathlib import Path
+
+def _load_pop_ingredients() -> list[str]:
+    try:
+        path = Path(__file__).parent.parent / "raw_cache" / "popus_ingredients.json"
+        with open(path) as f:
+            return [i.lower().strip() for i in json.load(f)]
+    except Exception:
+        return ["ginger", "ginseng", "honey", "reishi", "green tea"]
+
+POP_INGREDIENTS = _load_pop_ingredients()
+
 GINGER_SIGNALS  = ["ginger", "kombucha", "probiotic", "turmeric", "lemon"]
 GINSENG_SIGNALS = ["adaptogen", "reishi", "ashwagandha", "lion's mane", "mushroom", "nootropic"]
 
@@ -93,41 +105,39 @@ async def compute_composite_scores(session: AsyncSession) -> int:
 
 
 def _detect_dev_opportunity(term: str) -> dict:
-    """
-    Returns a dict describing product development opportunities.
-    Checks if the term signals a good fit for PoP's ginger or ginseng lines.
-    """
     term_lower = term.lower()
-    opportunities = []
 
-    # Ginger line opportunities
-    for signal in GINGER_SIGNALS:
-        if signal in term_lower:
-            opportunities.append({
+    pop_match = any(
+        ingr in term_lower or term_lower in ingr
+        for ingr in POP_INGREDIENTS
+        if len(ingr) > 4
+    )
+
+    if pop_match:
+        if any(s in term_lower for s in GINGER_SIGNALS):
+            return {
                 "type":     "product_development",
                 "pop_line": "Ginger",
                 "concept":  f"PoP Ginger + {term.title()} — new product concept",
                 "action":   "develop",
-            })
-            break
-
-    # Ginseng line opportunities
-    for signal in GINSENG_SIGNALS:
-        if signal in term_lower:
-            opportunities.append({
+            }
+        elif any(s in term_lower for s in GINSENG_SIGNALS):
+            return {
                 "type":     "product_development",
                 "pop_line": "Ginseng",
                 "concept":  f"PoP Ginseng + {term.title()} functional product",
                 "action":   "develop",
-            })
-            break
+            }
+        else:
+            return {
+                "type":     "product_development",
+                "pop_line": "PoP Wellness",
+                "concept":  f"PoP Wellness + {term.title()} — new product concept",
+                "action":   "develop",
+            }
 
-    # Distribution opportunity (high-signal terms that PoP doesn't make)
-    if not opportunities and term_lower not in ["ginseng", "ginger chew"]:
-        opportunities.append({
-            "type":   "distribution",
-            "concept": f"Source existing {term.title()} products for PoP distribution",
-            "action": "distribute",
-        })
-
-    return opportunities[0] if opportunities else {}
+    return {
+        "type":    "distribution",
+        "concept": f"Source existing {term.title()} products for PoP distribution",
+        "action":  "distribute",
+    }
