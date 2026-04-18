@@ -327,24 +327,28 @@ def _build_llm_rationale(term: str, category: str, growth_pct: float, angle: str
     if term in _rationale_cache:
         return _rationale_cache[term]
     try:
-        prompt = f"""You are a CPG buyer at Prince of Peace. Write exactly 2 bullet points about this trend opportunity.
+        prompt = f"""You are a CPG buyer at Prince of Peace. Write exactly 3 bullet points about this trend opportunity.
 
 Data: {term} | +{growth_pct}% growth | {category} | {angle} | {concept}
 
 Rules:
-- Max 12 words per bullet
+- Max 12 words for bullet 1 and 2
 - Bullet 1: what the data signals (must include {growth_pct}%)
 - Bullet 2: one specific next action for PoP
+- Bullet 3: sourcing info — 1-2 real wholesale or retail links for {term}, country of origin, retailer name
 - No filler words like "significant", "capitalize", "leverage"
-- Write like a analyst note, not marketing copy
+- Write like an analyst note
+- Use - not * for bullets
+- For bullet 3 format: "Source: [Retailer] ([country]) — [url]"
 
 Example format:
-- [term] surging {growth_pct}% — [one insight about why]
-- [specific action]: [who/what/where]"""
+- [term] surging {growth_pct}% — [one insight]
+- [specific action]: [who/what/where]
+- Source: [Retailer Name] ([country]) — [url]"""
         response = _groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
+            max_tokens=200,
             temperature=0.7,
         )
         rationale = response.choices[0].message.content.strip()
