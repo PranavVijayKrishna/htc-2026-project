@@ -32,7 +32,7 @@ from db.session import get_session
 from db.models import Trend, Product, ComplianceFlag, Category
 from pipeline.runner import run_pipeline
 
-from backend.filters.filters import run_filter
+#from backend.filters.filters import run_filter
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
 

@@ -15,6 +15,7 @@ from datetime import datetime
 from collectors.google_trends import collect_google_trends, upsert_trends
 from collectors.reddit import collect_reddit, upsert_reddit_trends
 from collectors.amazon import collect_amazon, upsert_products
+from collectors.iherb import collect_iherb, upsert_iherb_products
 from collectors.fda import refresh_fda_data, run_compliance_check_all
 from db.session import AsyncSessionLocal
 from pipeline.scorer import compute_composite_scores
@@ -25,7 +26,7 @@ async def run_pipeline(sources: list[str] = None) -> dict:
     Run the full pipeline (or subset).
     Returns summary dict for API response.
     """
-    sources = sources or ["google", "reddit", "amazon", "fda"]
+    sources = sources or ["google", "reddit", "amazon", "iherb", "fda"]
     start   = datetime.utcnow()
     summary = {"started_at": start.isoformat(), "steps": {}}
 
@@ -67,6 +68,17 @@ async def run_pipeline(sources: list[str] = None) -> dict:
             except Exception as e:
                 summary["steps"]["amazon"] = {"status": "error", "error": str(e)}
                 print(f"  ✗ Amazon failed: {e}")
+
+        if "iherb" in sources:
+            print("\n▶ Step 3b/4: iHerb Bestsellers")
+            try:
+                ih_data  = collect_iherb()
+                ih_count = await upsert_iherb_products(session, ih_data)
+                await session.commit()
+                summary["steps"]["iherb"] = {"status": "ok", "rows": ih_count}
+            except Exception as e:
+                summary["steps"]["iherb"] = {"status": "error", "error": str(e)}
+                print(f"  ✗ iHerb failed: {e}")
 
         if "fda" in sources:
             print("\n▶ Step 4/4: FDA Compliance Flags")
