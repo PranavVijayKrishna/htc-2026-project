@@ -233,12 +233,29 @@ async def get_recommendations(
         meta = trend.meta_json or {}
 
         # Pull normalized sub-scores stored by scorer.py (all 0–100)
-        gt_norm  = meta.get("gt_score_norm",     0.0) / 100
-        r_norm   = meta.get("reddit_score_norm",  0.0) / 100
-        gr_norm  = meta.get("growth_norm",        0.0) / 100
-        cross    = 1.0 if (gt_norm > 0 and r_norm > 0) else 0.0
+        gt_norm  = meta.get("gt_score_norm",  0.0) / 100
+        gr_norm  = meta.get("growth_norm",    0.0) / 100
+        sources_with_term = 0
+        if gt_norm > 0:
+            sources_with_term += 1
 
-        sub_scores_missing = (gt_norm == 0 and r_norm == 0 and gr_norm == 0)
+        iherb_terms = ["magnesium", "ashwagandha", "inositol", "berberine",
+                       "collagen", "probiotics", "creatine", "vitamin",
+                       "lion's mane", "nmn", "coq10", "omega"]
+        if any(t in trend.term.lower() for t in iherb_terms):
+            sources_with_term += 1
+
+        if trend.source == "amazon":
+            sources_with_term += 1
+
+        if sources_with_term >= 3:
+            cross = 1.0
+        elif sources_with_term == 2:
+            cross = 0.5
+        else:
+            cross = 0.0
+
+        sub_scores_missing = (gt_norm == 0 and gr_norm == 0)
         if sub_scores_missing:
             # Scorer hasn't run yet — fall back to raw_signal_score directly
             composite = (trend.raw_signal_score or 0) / 100

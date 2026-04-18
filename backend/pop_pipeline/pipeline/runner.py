@@ -26,7 +26,7 @@ async def run_pipeline(sources: list[str] = None) -> dict:
     Run the full pipeline (or subset).
     Returns summary dict for API response.
     """
-    sources = sources or ["google", "reddit", "amazon", "iherb", "fda"]
+    sources = sources or ["google", "amazon", "iherb", "fda"]
     start   = datetime.utcnow()
     summary = {"started_at": start.isoformat(), "steps": {}}
 
