@@ -458,7 +458,7 @@ Concept: {payload.concept}
 Real web results for context:
 {search_results}
 
-Answer concisely under 3 sentences. Include relevant links from the search results when helpful."""
+Answer concisely under 3 sentences. Include relevant links from the search results when helpful. (Don't mention that you are a senior product buyer advisor just advice like how an AI chatbot does)"""
 
     try:
         response = _groq_client.chat.completions.create(

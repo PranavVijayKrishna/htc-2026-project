@@ -32,7 +32,7 @@ interface Message {
   content: string;
 }
 
-type SortKey  = 'score' | 'name' | 'growth' | 'confidence';
+type SortKey  = 'score' | 'name' | 'growth';
 type ViewMode = 'list' | 'grid';
 type Lang     = 'en' | 'zh';
 
@@ -47,17 +47,25 @@ const BARS = [
   { key: 'recency',         label: 'Freshness',       color: '#22C55E' },
 ] as const;
 
+const BAR_TOOLTIPS: Record<string, string> = {
+  growth:          'Week-over-week search momentum — how fast consumer interest is rising',
+  relevance:       "How closely this trend matches PoP's ingredient and product portfolio",
+  competition_gap: 'Fewer competing products = larger white-space opportunity for PoP to enter',
+  cross_signal:    'Trend confirmed across multiple sources (Google Trends, Amazon, iHerb)',
+  recency:         'How recent the underlying data is — ensures rankings reflect current market',
+};
+
 const TR = {
   en: {
     dashTitle: 'Product Opportunities',
     dashSub: 'AI-powered trend intelligence for Prince of Peace buyers',
     type: 'Type', all: 'All', distribute: 'Distribute', develop: 'Develop',
     sortBy: 'Sort by', scoreOpt: 'Score (default)', nameOpt: 'Name (A–Z)',
-    growthOpt: 'Growth Rate', confidenceOpt: 'Confidence',
+    growthOpt: 'Growth Rate',
     minScore: 'Min Score', loading: 'Loading...',
     learnMore: 'Learn More', backDash: '← Back to Dashboard',
     growthLabel: 'Growth Rate', actionLabel: 'Action',
-    confidenceLabel: 'Confidence', popLineLabel: 'PoP Line',
+    popLineLabel: 'PoP Line',
     chatPlaceholder: 'Ask about suppliers, trends, competitors...',
     send: 'Send', aiBtn: 'Learn More with AI',
     whyMatters: 'Why this matters for PoP', scoreBreakdown: 'Score Breakdown',
@@ -81,11 +89,11 @@ const TR = {
     dashSub: '为太平王消费品买家提供的AI趋势情报',
     type: '类型', all: '全部', distribute: '分销', develop: '开发',
     sortBy: '排序', scoreOpt: '得分（默认）', nameOpt: '名称（A-Z）',
-    growthOpt: '增长率', confidenceOpt: '置信度',
+    growthOpt: '增长率',
     minScore: '最低分数', loading: '加载中...',
     learnMore: '了解更多', backDash: '← 返回仪表板',
     growthLabel: '增长率', actionLabel: '操作',
-    confidenceLabel: '置信度', popLineLabel: 'PoP产品线',
+    popLineLabel: 'PoP产品线',
     chatPlaceholder: '询问供应商、趋势、竞争对手...',
     send: '发送', aiBtn: '与AI深入探讨',
     whyMatters: '为何对太平王重要', scoreBreakdown: '得分细分',
@@ -364,7 +372,7 @@ function OpportunityCard({
         {!grid && (
           <>
             <div className="border-t border-gray-100 my-3" />
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-2">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{t.growthLabel}</div>
                 <div className="text-sm font-extrabold text-[#F59E0B] mt-0.5">+{item.growth_pct.toFixed(0)}%</div>
@@ -374,10 +382,6 @@ function OpportunityCard({
                 <div className="text-sm font-extrabold text-[#111827] mt-0.5">
                   {item.angle === 'develop' ? t.developLabel : t.distributeLabel}
                 </div>
-              </div>
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{t.confidenceLabel}</div>
-                <div className="text-sm font-extrabold text-[#14B8A6] mt-0.5">{(item.confidence * 100).toFixed(0)}%</div>
               </div>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{t.popLineLabel}</div>
@@ -393,9 +397,8 @@ function OpportunityCard({
 
         {/* Grid compact meta */}
         {grid && (
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
-            <span className="text-[#F59E0B] font-bold">+{item.growth_pct.toFixed(0)}%</span>
-            <span>{(item.confidence * 100).toFixed(0)}% conf.</span>
+          <div className="mt-2 flex items-center text-xs text-gray-400">
+            <span className="text-[#F59E0B] font-bold">+{item.growth_pct.toFixed(0)}% growth</span>
           </div>
         )}
 
@@ -466,11 +469,6 @@ function ListRow({
       {/* Growth */}
       <td className="py-3 px-3 text-right w-20">
         <span className="text-[#F59E0B] font-bold text-sm tabular-nums">+{item.growth_pct.toFixed(0)}%</span>
-      </td>
-
-      {/* Confidence */}
-      <td className="py-3 px-3 text-right w-20">
-        <span className="text-[#14B8A6] font-bold text-sm tabular-nums">{(item.confidence * 100).toFixed(0)}%</span>
       </td>
 
       {/* Sub-scores mini bars */}
@@ -559,10 +557,6 @@ function DetailView({
           <div className="text-3xl font-extrabold text-[#F59E0B]">+{item.growth_pct.toFixed(0)}%</div>
           <div className="text-gray-400 text-xs mt-0.5">{t.growth}</div>
         </div>
-        <div>
-          <div className="text-3xl font-extrabold text-[#14B8A6]">{(item.confidence * 100).toFixed(0)}%</div>
-          <div className="text-gray-400 text-xs mt-0.5">{t.confidenceLabel}</div>
-        </div>
       </div>
 
       {/* Rationale */}
@@ -579,7 +573,15 @@ function DetailView({
           return (
             <div key={key} className="mb-2.5">
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-gray-500 font-mono">{label}</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-gray-500 font-mono">{label}</span>
+                  <span className="relative group">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gray-100 text-gray-400 text-[9px] font-bold flex items-center justify-center cursor-default select-none leading-none">?</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 z-50 hidden group-hover:flex w-56 bg-[#1e1e2e] text-white text-[11px] leading-snug px-3 py-2 rounded-lg shadow-xl pointer-events-none">
+                      {BAR_TOOLTIPS[key]}
+                    </span>
+                  </span>
+                </span>
                 <span className="font-semibold" style={{ color }}>{val.toFixed(2)}</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
@@ -681,7 +683,6 @@ export default function Dashboard() {
     score:      (a, b) => b.score      - a.score,
     name:       (a, b) => a.term.localeCompare(b.term),
     growth:     (a, b) => b.growth_pct - a.growth_pct,
-    confidence: (a, b) => b.confidence - a.confidence,
   };
 
   const filtered = data
@@ -750,7 +751,6 @@ export default function Dashboard() {
                     <option value="score">{t.scoreOpt}</option>
                     <option value="name">{t.nameOpt}</option>
                     <option value="growth">{t.growthOpt}</option>
-                    <option value="confidence">{t.confidenceOpt}</option>
                   </select>
                 </div>
 
@@ -856,7 +856,6 @@ export default function Dashboard() {
                         <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Product</th>
                         <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center w-16">Score</th>
                         <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-right w-20">Growth</th>
-                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-right w-20">Confidence</th>
                         <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 w-24">Signals</th>
                         <th className="py-2.5 pl-2 pr-4 w-28" />
                       </tr>
