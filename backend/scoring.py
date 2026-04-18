@@ -1,9 +1,20 @@
 # scoring.py - built from real PoP product catalog
 
-POP_CORE_INGREDIENTS = [
-    "ginger", "ginseng", "honey", "reishi", "mushroom",
-    "herbal", "tea", "loquat", "ginseng extract"
-]
+import json
+from pathlib import Path
+
+
+def load_pop_ingredients() -> list[str]:
+    """Load real PoP ingredients from scraped JSON file."""
+    try:
+        path = Path(__file__).parent.parent / "raw_cache" / "popus_ingredients.json"
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return ["ginger", "ginseng", "honey", "reishi", "herbal tea"]
+
+
+POP_CORE_INGREDIENTS = load_pop_ingredients()
 
 POP_CATEGORIES = {
     "ginseng": [
