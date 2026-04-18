@@ -41,11 +41,11 @@ _rationale_cache: dict = {}
 
 # Live-tunable weights — P3 demo moment (shift on stage, rankings re-order instantly)
 _current_weights = {
-    "growth":          0.35,
-    "relevance":       0.25,
-    "cross_signal":    0.20,
-    "competition_gap": 0.15,
-    "recency":         0.05,
+    "growth":          0.40,
+    "relevance":       0.30,
+    "cross_signal":    0.05,  # Reddit gone, less cross-source signal
+    "competition_gap": 0.10,
+    "recency":         0.15,  # always 1.0 — guaranteed floor contribution
 }
 
 _VALID_WEIGHT_KEYS = set(_current_weights.keys())
@@ -292,7 +292,7 @@ async def get_recommendations(
 
         scored.append({
             "term":         trend.term,
-            "score":        round(composite * 10, 2),
+            "score":        round(min(10.0, composite * 12), 2),
             "growth_pct":   trend.growth_rate,
             "angle":        rec_angle,
             "pop_line":     dev_opp.get("pop_line", ""),
