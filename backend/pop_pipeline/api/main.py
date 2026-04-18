@@ -23,7 +23,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
-from groq import Groq
+# from groq import Groq
 from duckduckgo_search import DDGS
 
 load_dotenv()
@@ -32,11 +32,11 @@ from db.session import get_session
 from db.models import Trend, Product, ComplianceFlag, Category
 from pipeline.runner import run_pipeline
 
-#from backend.filters.filters import run_filter
+from filters.filters import run_filter
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
 
-_groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# _groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 _rationale_cache: dict = {}
 
 # Live-tunable weights — P3 demo moment (shift on stage, rankings re-order instantly)
@@ -341,12 +341,13 @@ Rules:
 Example format:
 - [term] surging {growth_pct}% — [one insight about why]
 - [specific action]: [who/what/where]"""
-        response = _groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
-            temperature=0.7,
-        )
+        # response = _groq_client.chat.completions.create(
+        #     model="llama-3.3-70b-versatile",
+        #     messages=[{"role": "user", "content": prompt}],
+        #     max_tokens=100,
+        #     temperature=0.7,
+        # )
+        response = ''
         rationale = response.choices[0].message.content.strip()
         _rationale_cache[term] = rationale
         return rationale
@@ -457,15 +458,16 @@ Real web results for context:
 Answer concisely under 3 sentences. Include relevant links from the search results when helpful."""
 
     try:
-        response = _groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *payload.messages,
-            ],
-            max_tokens=250,
-            temperature=0.7,
-        )
+        # response = _groq_client.chat.completions.create(
+        #     model="llama-3.3-70b-versatile",
+        #     messages=[
+        #         {"role": "system", "content": system_prompt},
+        #         *payload.messages,
+        #     ],
+        #     max_tokens=250,
+        #     temperature=0.7,
+        # )
+        response = ''
         return {"reply": response.choices[0].message.content.strip()}
     except Exception:
         return {"reply": "Sorry, I couldn't process that. Please try again."}
