@@ -239,10 +239,13 @@ async def get_recommendations(
         if gt_norm > 0:
             sources_with_term += 1
 
-        iherb_terms = ["magnesium", "ashwagandha", "inositol", "berberine",
-                       "collagen", "probiotics", "creatine", "vitamin",
-                       "lion's mane", "nmn", "coq10", "omega"]
-        if any(t in trend.term.lower() for t in iherb_terms):
+        iherb_result = await session.execute(
+            select(Product).where(
+                Product.source == "iherb",
+                Product.name.ilike(f"%{trend.term}%")
+            )
+        )
+        if iherb_result.scalars().first():
             sources_with_term += 1
 
         if trend.source == "amazon":
