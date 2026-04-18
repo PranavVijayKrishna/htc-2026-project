@@ -31,6 +31,8 @@ from db.session import get_session
 from db.models import Trend, Product, ComplianceFlag, Category
 from pipeline.runner import run_pipeline
 
+from backend.filters.filters import run_filter
+
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
 
 _groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -141,34 +143,57 @@ async def get_trends(
 # ─────────────────────────────────────────────────────────────
 @app.get("/api/products")
 async def get_products(
-    limit:   int            = Query(50, ge=1, le=200),
-    session: AsyncSession   = Depends(get_session),
+    limit:            int           = Query(50, ge=1, le=200),
+    exclude_failed:   bool          = Query(False, description="Hide products that fail any filter"),
+    exclude_flagged:  bool          = Query(False, description="Hide products with origin warnings"),
+    session:          AsyncSession  = Depends(get_session),
 ):
     result = await session.execute(
         select(Product).order_by(Product.amazon_rank).limit(limit)
     )
     products = result.scalars().all()
 
-    return {
-        "count": len(products),
-        "products": [
-            {
-                "id":                p.id,
-                "name":              p.name,
-                "brand":             p.brand,
-                "source":            p.source,
-                "amazon_rank":       p.amazon_rank,
-                "rank_delta":        (
-                    (p.amazon_rank_prev - p.amazon_rank)
-                    if p.amazon_rank_prev and p.amazon_rank else None
-                ),
-                "price":             p.price,
-                "country_of_origin": p.country_of_origin,
-                "url":               p.url,
-            }
-            for p in products
-        ],
-    }
+    output = []
+    for p in products:
+        # Build the dict your filter expects
+        product_dict = {
+            "shelf_life_months":  (p.meta_json or {}).get("shelf_life_months", 24),
+            "ingredients":        (p.meta_json or {}).get("ingredients", []),
+            "country_of_origin":  p.country_of_origin or "",
+        }
+
+        shelf_life_result, fda_result, origin_result = run_filter(product_dict)
+
+        passed  = shelf_life_result.passed and fda_result.passed
+        flags   = [r.flag for r in (shelf_life_result, fda_result, origin_result) if r.flag]
+        reasons = [r.reason for r in (shelf_life_result, fda_result, origin_result) if r.reason]
+
+        if exclude_failed  and not passed:   continue
+        if exclude_flagged and flags:         continue
+
+        output.append({
+            "id":                p.id,
+            "name":              p.name,
+            "brand":             p.brand,
+            "source":            p.source,
+            "amazon_rank":       p.amazon_rank,
+            "rank_delta":        (
+                (p.amazon_rank_prev - p.amazon_rank)
+                if p.amazon_rank_prev and p.amazon_rank else None
+            ),
+            "price":             p.price,
+            "country_of_origin": p.country_of_origin,
+            "url":               p.url,
+            # ── Filter results ──────────────────────────
+            "filter": {
+                "passed":  passed,
+                "reasons": reasons,   # why it failed, if any
+                "flags":   flags,     # warnings (non-blocking)
+            },
+        })
+
+    return {"count": len(output), "products": output}
+
 
 
 # ─────────────────────────────────────────────────────────────

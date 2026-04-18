@@ -6,8 +6,9 @@ import ssl
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from pathlib import Path
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env.example")
 
 # Strip sslmode param — asyncpg uses connect_args ssl instead
 _raw_url = os.getenv("DATABASE_URL", "")
@@ -15,6 +16,7 @@ DATABASE_URL = _raw_url.replace("?sslmode=require", "").replace("?ssl=true", "")
 
 _ssl_ctx = ssl.create_default_context()
 
+print(f"DATABASE_URL: '{DATABASE_URL}'")
 engine = create_async_engine(
     DATABASE_URL,
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
