@@ -9,6 +9,7 @@ interface Recommendation {
   angle: string;
   pop_line: string;
   concept: string;
+  description?: string;
   why_relevant: string;
   confidence: number;
   sources_seen: string[];
@@ -47,6 +48,83 @@ const BARS = [
   { key: 'recency',         label: 'Freshness',       color: '#22C55E' },
 ] as const;
 
+function scoreColor(score: number): string {
+  if (score >= 8) return 'bg-green-700 text-white';
+  if (score >= 6) return 'bg-green-400 text-black';
+  if (score >= 4) return 'bg-amber-400 text-black';
+  return 'bg-red-500 text-white';
+}
+
+const PRODUCT_DESCS: Record<string, string> = {
+  "ashwagandha":               "A root herb popular for reducing stress and boosting everyday energy.",
+  "rhodiola rosea":            "An herbal supplement that helps fight fatigue and sharpen focus.",
+  "lion's mane mushroom":      "A brain-supporting mushroom used for memory and mental clarity.",
+  "reishi mushroom":           "A calming mushroom known for immune support and better sleep.",
+  "cordyceps":                 "An energizing mushroom used by athletes for stamina and endurance.",
+  "maca root":                 "A Peruvian root that supports energy, mood, and hormone balance.",
+  "holy basil tulsi":          "An Ayurvedic herb used to ease stress and support overall wellness.",
+  "eleuthero":                 "An herbal root that helps the body handle stress and stay energized.",
+  "schisandra berry":          "A tart berry used to support liver health, focus, and resilience.",
+  "ginseng":                   "A classic wellness root used for energy, immunity, and vitality.",
+  "korean red ginseng":        "A premium steamed ginseng known for stamina and immune strength.",
+  "american ginseng":          "A milder ginseng variety used to calm energy and support digestion.",
+  "panax ginseng":             "The gold-standard ginseng for mental and physical performance.",
+  "ginger chew":               "A chewy ginger candy that soothes nausea and aids digestion.",
+  "ginger candy":              "A tasty candy made with real ginger for digestive comfort.",
+  "crystallized ginger":       "Sugar-coated ginger slices — great for travel sickness and snacking.",
+  "ginger shot":               "A concentrated liquid ginger boost for quick anti-nausea relief.",
+  "ginger supplement":         "A ginger extract in capsule form for daily digestive support.",
+  "matcha":                    "A powdered green tea that gives calm, focused energy without jitters.",
+  "rooibos tea":               "A naturally caffeine-free South African herbal tea with a smooth taste.",
+  "hibiscus tea":              "A tart, floral tea used to support heart health and blood pressure.",
+  "chamomile tea":             "A gentle herbal tea for relaxation and a good night's sleep.",
+  "turmeric tea":              "A warming spice tea known for its anti-inflammatory benefits.",
+  "mushroom tea":              "A functional tea blended with wellness mushrooms like chaga and reishi.",
+  "elderberry tea":            "A berry tea used to strengthen the immune system during cold season.",
+  "kombucha":                  "A tangy fermented tea with live probiotics for gut health.",
+  "water kefir":               "A lightly fizzy probiotic drink made from fermented water grains.",
+  "prebiotic soda":            "A gut-friendly sparkling drink that feeds healthy bacteria.",
+  "mushroom coffee":           "A coffee blend with brain-boosting mushrooms for focus without the crash.",
+  "adaptogen drink":           "A functional beverage with stress-fighting herbs like ashwagandha.",
+  "collagen drink":            "A ready-to-drink collagen supplement for skin, hair, and joints.",
+  "nootropic drink":           "A brain-boosting beverage designed to improve focus and memory.",
+  "electrolyte powder":        "A hydration mix with key minerals to replenish after exercise.",
+  "sea moss gel":              "A mineral-rich seaweed gel known for thyroid and skin support.",
+  "black seed oil":            "A potent seed oil used for immune support and reducing inflammation.",
+  "moringa powder":            "A superfood leaf powder packed with vitamins, iron, and antioxidants.",
+  "spirulina powder":          "A nutrient-dense algae powder high in plant protein and antioxidants.",
+  "chlorella":                 "A freshwater algae supplement used for detox and nutritional support.",
+  "baobab powder":             "An African fruit powder rich in vitamin C and gut-friendly fiber.",
+  "wheatgrass powder":         "A green superfood powder made from young wheat leaves.",
+  "bee pollen":                "Natural pollen granules with enzymes, vitamins, and amino acids.",
+  "berberine":                 "A plant compound used to support healthy blood sugar and metabolism.",
+  "nmn supplement":            "A longevity supplement that boosts cellular energy and supports healthy aging.",
+  "nad+ supplement":           "A cellular energy compound that supports metabolism and DNA repair.",
+  "collagen peptides":         "A protein supplement for healthy skin, hair, nails, and joints.",
+  "magnesium glycinate":       "A gentle, highly absorbable magnesium for sleep and muscle relaxation.",
+  "quercetin supplement":      "A plant antioxidant used to reduce inflammation and support immunity.",
+  "spermidine":                "A natural compound found in wheat germ that supports cellular renewal.",
+  "urolithin a":               "A pomegranate-derived compound that supports muscle health and aging.",
+  "inositol":                  "A natural compound that supports mood, hormones, and blood sugar balance.",
+  "seaweed snack":             "A light, crispy roasted nori snack packed with minerals and umami.",
+  "protein bar":               "A convenient high-protein snack for on-the-go nutrition.",
+  "manuka honey":              "A premium New Zealand honey with antibacterial and immune benefits.",
+  "herbal candy":              "A wellness candy infused with herbs like ginger, elderberry, or licorice.",
+  "throat lozenge":            "A soothing lozenge with honey or menthol to calm throat irritation.",
+  "dark chocolate supplement": "A cacao-based product with antioxidants for heart and mood support.",
+  "tiger balm":                "A trusted topical balm with menthol for fast muscle and joint relief.",
+  "arnica gel":                "A topical gel from arnica flowers to ease bruising and sore muscles.",
+  "topical magnesium":         "A magnesium oil or lotion applied to the skin for muscle cramps.",
+  "cbd pain relief":           "A CBD-based topical or supplement for inflammation and pain relief.",
+  "muscle rub":                "A warming or cooling cream for sore muscles after workouts.",
+  "pain relief patch":         "A stick-on patch that delivers pain relief directly to the skin.",
+};
+
+function shortDesc(item: Recommendation): string {
+  if (item.description) return item.description;
+  return PRODUCT_DESCS[item.term.toLowerCase()] || '';
+}
+
 const BAR_TOOLTIPS: Record<string, string> = {
   growth:          'Week-over-week search momentum — how fast consumer interest is rising',
   relevance:       "How closely this trend matches PoP's ingredient and product portfolio",
@@ -57,8 +135,8 @@ const BAR_TOOLTIPS: Record<string, string> = {
 
 const TR = {
   en: {
-    dashTitle: 'Product Opportunities',
-    dashSub: 'AI-powered trend intelligence for Prince of Peace buyers',
+    dashTitle: 'Dashboard',
+    dashSub: 'Click on a product to explore it, or use sort and filters to narrow down opportunities.',
     type: 'Type', all: 'All', distribute: 'Distribute', develop: 'Develop',
     sortBy: 'Sort by', scoreOpt: 'Score (default)', nameOpt: 'Name (A–Z)',
     growthOpt: 'Growth Rate',
@@ -85,8 +163,8 @@ const TR = {
     chatTitle: 'Ask anything about this opportunity',
   },
   zh: {
-    dashTitle: '产品机会',
-    dashSub: '为太平王消费品买家提供的AI趋势情报',
+    dashTitle: '仪表板',
+    dashSub: '点击产品查看详情，或使用排序和筛选缩小范围。',
     type: '类型', all: '全部', distribute: '分销', develop: '开发',
     sortBy: '排序', scoreOpt: '得分（默认）', nameOpt: '名称（A-Z）',
     growthOpt: '增长率',
@@ -340,11 +418,11 @@ function OpportunityCard({
                 {item.term}
               </h2>
             )}
-            {item.concept && (
-              <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">{item.concept}</p>
+            {shortDesc(item) && (
+              <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">{shortDesc(item)}</p>
             )}
           </div>
-          <div className="bg-amber-400 text-black font-extrabold rounded-xl flex-shrink-0 flex items-center justify-center"
+          <div className={`${scoreColor(item.score)} font-extrabold rounded-xl flex-shrink-0 flex items-center justify-center`}
             style={{ fontSize: grid ? '1rem' : '1.3rem', width: grid ? '44px' : '56px', height: grid ? '36px' : '48px' }}>
             {item.score.toFixed(1)}
           </div>
@@ -403,9 +481,10 @@ function OpportunityCard({
         )}
 
         <div className="mt-2 flex justify-end">
-          <button onClick={onChat} title={t.learnMore}
-            className="text-xs bg-gray-50 hover:bg-[#4F46E5] text-gray-500 hover:text-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors font-medium">
-            {t.learnMore}
+          <button onClick={onChat} title="Ask AI about this product"
+            className="text-xs bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/></svg>
+            Ask AI
           </button>
         </div>
       </div>
@@ -431,7 +510,7 @@ function ListRow({
       className={`border-b border-gray-50 hover:bg-[#F5F7FF] cursor-pointer transition-colors group ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
 
       {/* # */}
-      <td className="py-3 pl-4 pr-2 text-xs text-gray-300 font-mono w-8 select-none">{index + 1}</td>
+      <td className="py-3 pl-4 pr-2 text-xs text-gray-500 font-mono w-8 select-none">{index + 1}</td>
 
       {/* Product */}
       <td className="py-3 px-3">
@@ -454,14 +533,14 @@ function ListRow({
         ) : (
           <div className="font-extrabold text-[#111827] uppercase tracking-wide text-sm leading-tight">{item.term}</div>
         )}
-        {item.concept && (
-          <div className="text-[11px] text-gray-400 mt-0.5 max-w-xs truncate">{item.concept}</div>
+        {shortDesc(item) && (
+          <div className="text-[11px] text-gray-400 mt-0.5 max-w-sm leading-snug">{shortDesc(item)}</div>
         )}
       </td>
 
       {/* Score */}
       <td className="py-3 px-3 text-center w-16">
-        <span className="bg-amber-400 text-black font-extrabold text-sm px-2.5 py-1 rounded-lg inline-block tabular-nums">
+        <span className={`${scoreColor(item.score)} font-extrabold text-sm px-2.5 py-1 rounded-lg inline-block tabular-nums`}>
           {item.score.toFixed(1)}
         </span>
       </td>
@@ -490,9 +569,10 @@ function ListRow({
 
       {/* Actions */}
       <td className="py-3 pl-2 pr-4 text-right w-28">
-        <button onClick={onChat} title={t.learnMore}
-          className="text-xs bg-gray-50 hover:bg-[#4F46E5] text-gray-500 hover:text-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap">
-          {t.learnMore}
+        <button onClick={onChat} title="Ask AI about this product"
+          className="text-xs bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-3 py-1.5 rounded-lg transition-colors font-medium whitespace-nowrap flex items-center gap-1 ml-auto">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/></svg>
+          Ask AI
         </button>
       </td>
     </tr>
@@ -508,7 +588,6 @@ function DetailView({
   lang: Lang;
 }) {
   const t = TR[lang];
-  const [showReviews, setShowReviews] = useState(false);
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-6">
@@ -562,6 +641,9 @@ function DetailView({
       {/* Rationale */}
       <div className="bg-white rounded-xl p-4 mb-4 border border-gray-100 shadow-sm">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">{t.whyMatters}</h2>
+        {item.concept && (
+          <p className="text-xs text-[#7C3AED] font-medium mb-2 pb-2 border-b border-gray-100">{item.concept}</p>
+        )}
         <p className="text-[#111827] leading-relaxed text-sm">{item.why_relevant}</p>
       </div>
 
@@ -608,50 +690,11 @@ function DetailView({
         </div>
       )}
 
-      {/* Reviews */}
-      <div className="bg-white rounded-xl p-4 mb-4 border border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">{t.reviewsSummary}</h2>
-          {item.reviews_url && (
-            <a href={item.reviews_url} target="_blank" rel="noopener noreferrer"
-              title={t.viewReviews}
-              className="text-xs text-[#4F46E5] hover:text-[#4338CA] font-medium transition-colors">
-              {t.viewReviews} &#8594;
-            </a>
-          )}
-        </div>
-        {item.reviews_summary ? (
-          <>
-            <p className={`text-[#111827] text-sm leading-relaxed ${!showReviews ? 'line-clamp-3' : ''}`}>
-              {item.reviews_summary}
-            </p>
-            {item.reviews_summary.length > 200 && (
-              <button
-                onClick={() => setShowReviews(v => !v)}
-                title={showReviews ? 'Show less' : 'Show more reviews'}
-                className="text-xs text-[#4F46E5] hover:text-[#4338CA] mt-1.5 font-medium transition-colors">
-                {showReviews ? 'Show less' : 'Show more'}
-              </button>
-            )}
-          </>
-        ) : (
-          <p className="text-gray-300 text-sm">{t.noInfo}</p>
-        )}
-      </div>
 
-      {/* Signal sources */}
-      <div className="bg-white rounded-xl p-4 mb-4 border border-gray-100 shadow-sm">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">{t.signalSources}</h2>
-        <div className="flex gap-2 flex-wrap">
-          {(Array.isArray(item.sources_seen) ? item.sources_seen : []).map(s => (
-            <span key={s} className="bg-gray-50 border border-gray-200 px-3 py-1 rounded-full text-sm text-gray-600">{s}</span>
-          ))}
-        </div>
-      </div>
-
-      <button onClick={onChat} title={t.aiBtn}
-        className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white py-3 rounded-xl font-semibold text-sm transition-colors">
-        {t.aiBtn}
+      <button onClick={onChat} title="Ask AI about this product"
+        className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white py-3 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74z"/></svg>
+        Ask AI
       </button>
     </div>
   );
@@ -669,6 +712,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode]       = useState<ViewMode>('list');
   const [selected, setSelected]       = useState<Recommendation | null>(null);
   const [chatItem, setChatItem]       = useState<Recommendation | null>(null);
+  const [search, setSearch]           = useState('');
 
   const t = TR[lang];
 
@@ -689,6 +733,14 @@ export default function Dashboard() {
     .filter(item => {
       if (selectedAngle !== 'all' && item.angle !== selectedAngle) return false;
       if (item.score < minScore) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        return (
+          item.term.toLowerCase().includes(q) ||
+          item.why_relevant?.toLowerCase().includes(q) ||
+          item.concept?.toLowerCase().includes(q)
+        );
+      }
       return true;
     })
     .sort(sortFns[sortKey]);
@@ -711,13 +763,13 @@ export default function Dashboard() {
           <Nav lang={lang} setLang={setLang} />
           {/* Page header + toolbar — sticky below nav */}
           <div className="bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-[65px] z-30">
-            <div className="max-w-7xl mx-auto px-8 py-3">
-              <div className="flex items-center justify-between mb-3">
+            <div className="max-w-7xl mx-auto px-8 py-5">
+              <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-xl font-extrabold text-[#111827]">{t.dashTitle}</h1>
-                  <p className="text-xs text-gray-400 mt-0.5">{t.dashSub}</p>
+                  <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">{t.dashTitle}</h1>
+                  <p className="text-sm font-medium text-[#7C3AED] mt-1.5">{t.dashSub}</p>
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-400 mt-1">
                   {loading ? t.loading : t.resultCount(filtered.length)}
                 </div>
               </div>
@@ -766,6 +818,24 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex-1" />
+
+                {/* Search */}
+                <div className="relative">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Search products..."
+                    className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#7C3AED] text-[#111827] w-44 transition-colors"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  )}
+                </div>
 
                 {/* View toggle */}
                 <div className="flex gap-1 border border-gray-200 rounded-lg p-1 bg-gray-50">
