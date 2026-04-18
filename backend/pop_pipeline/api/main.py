@@ -24,6 +24,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
 from groq import Groq
+from duckduckgo_search import DDGS
 
 load_dotenv()
 
@@ -63,6 +64,15 @@ class WeightsPayload(BaseModel):
         if not (0.0 <= v <= 1.0):
             raise ValueError("Each weight must be between 0 and 1")
         return v
+
+class ChatMessage(BaseModel):
+    term:       str
+    growth_pct: float
+    category:   str
+    angle:      str
+    concept:    str
+    messages:   list[dict]  # [{"role": "user"|"assistant", "content": "..."}]
+
 
 app = FastAPI(
     title="PoP Trend Intelligence API",
@@ -381,3 +391,48 @@ async def refresh_pipeline(
         "sources": sources or "all",
         "message": "Pipeline running in background. Poll /api/pipeline/status",
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# POST /api/chat  — Dive Deeper chatbot per trend card
+# ─────────────────────────────────────────────────────────────
+@app.post("/api/chat")
+async def chat_with_trend(payload: ChatMessage):
+    # Angle-aware search: supplier hunt vs product dev research
+    if payload.angle == "develop":
+        query = f"{payload.term} CPG product development formulation manufacturer"
+    else:
+        query = f"{payload.term} supplement wholesale supplier sourcing"
+
+    search_results = ""
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=3))
+            for r in results:
+                search_results += f"- {r['title']}: {r['href']}\n"
+    except Exception:
+        search_results = "No search results available."
+
+    system_prompt = f"""You are a senior product buyer advisor at Prince of Peace (PoP).
+
+Trend: {payload.term} | +{payload.growth_pct}% | {payload.category} | {payload.angle}
+Concept: {payload.concept}
+
+Real web results for context:
+{search_results}
+
+Answer concisely under 3 sentences. Include relevant links from the search results when helpful."""
+
+    try:
+        response = _groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                *payload.messages,
+            ],
+            max_tokens=250,
+            temperature=0.7,
+        )
+        return {"reply": response.choices[0].message.content.strip()}
+    except Exception:
+        return {"reply": "Sorry, I couldn't process that. Please try again."}
