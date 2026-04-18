@@ -255,16 +255,29 @@ async def get_recommendations(
         else:
             cross = 0.0
 
+        # Real competition gap: fewer matching products in DB = better opportunity
+        product_result = await session.execute(
+            select(Product).where(Product.name.ilike(f"%{trend.term}%"))
+        )
+        competing_products = len(product_result.scalars().all())
+        if competing_products == 0:
+            competition_gap = 0.8
+        elif competing_products <= 3:
+            competition_gap = 0.6
+        elif competing_products <= 10:
+            competition_gap = 0.4
+        else:
+            competition_gap = 0.2
+
         sub_scores_missing = (gt_norm == 0 and gr_norm == 0)
         if sub_scores_missing:
-            # Scorer hasn't run yet — fall back to raw_signal_score directly
             composite = (trend.raw_signal_score or 0) / 100
         else:
             composite = (
                 w["growth"]          * gr_norm +
                 w["relevance"]       * gt_norm +
                 w["cross_signal"]    * cross   +
-                w["competition_gap"] * 0.5     +
+                w["competition_gap"] * competition_gap +
                 w["recency"]         * 1.0
             )
 
@@ -294,7 +307,7 @@ async def get_recommendations(
                 "growth":          round(gr_norm, 2),
                 "relevance":       round(gt_norm, 2),
                 "cross_signal":    round(cross,   2),
-                "competition_gap": 0.5,
+                "competition_gap": round(competition_gap, 2),
                 "recency":         1.0,
             },
         })
