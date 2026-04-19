@@ -38,6 +38,7 @@ ADMIN_SECRET = os.getenv("ADMIN_SECRET", "changeme_hackathon_2026")
 
 _groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 _rationale_cache: dict = {}
+_desc_cache: dict = {}
 
 # Live-tunable weights — P3 demo moment (shift on stage, rankings re-order instantly)
 _current_weights = {
@@ -297,6 +298,7 @@ async def get_recommendations(
             "angle":        rec_angle,
             "pop_line":     dev_opp.get("pop_line", ""),
             "concept":      dev_opp.get("concept", f"Investigate {trend.term}"),
+            "description":  _build_product_desc(trend.term),
             "why_relevant": _build_llm_rationale(
                 trend.term,
                 dev_opp.get("pop_line", "health & wellness"),
@@ -346,7 +348,7 @@ Example format:
 - [specific action]: [who/what/where]
 - Source: [Retailer Name] ([country]) — [url]"""
         response = _groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3-32b",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7,
@@ -357,6 +359,23 @@ Example format:
     except Exception:
         return f"{term.title()} is growing {growth_pct:.0f}% week-over-week. Review for sourcing feasibility."
 
+
+def _build_product_desc(term: str) -> str:
+    if term in _desc_cache:
+        return _desc_cache[term]
+    try:
+        prompt = f"""In one sentence of 20 words or fewer, describe what "{term}" is and name its 2-3 main active ingredients or compounds. Write for a non-technical retail buyer. No marketing language."""
+        response = _groq_client.chat.completions.create(
+            model="qwen/qwen3-32b",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0.3,
+        )
+        desc = response.choices[0].message.content.strip().strip('"')
+        _desc_cache[term] = desc
+        return desc
+    except Exception:
+        return f"{term.title()} — a health and wellness ingredient gaining consumer interest."
 
 
 # ─────────────────────────────────────────────────────────────
@@ -450,19 +469,19 @@ async def chat_with_trend(payload: ChatMessage):
     except Exception:
         search_results = "No search results available."
 
-    system_prompt = f"""You are a senior product buyer advisor at Prince of Peace (PoP).
+    system_prompt = f"""You are a helpful AI assistant. Answer questions about products, trends, and market opportunities in a friendly, conversational way.
 
-Trend: {payload.term} | +{payload.growth_pct}% | {payload.category} | {payload.angle}
+Context: {payload.term} | +{payload.growth_pct}% growth | {payload.category} | {payload.angle}
 Concept: {payload.concept}
 
-Real web results for context:
+Web results for context:
 {search_results}
 
-Answer concisely under 3 sentences. Include relevant links from the search results when helpful. (Don't mention that you are a senior product buyer advisor just advice like how an AI chatbot does)"""
+Keep answers concise and clear. Include relevant links from the search results when helpful."""
 
     try:
         response = _groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3-32b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 *payload.messages,
