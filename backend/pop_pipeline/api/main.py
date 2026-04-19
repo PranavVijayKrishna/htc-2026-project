@@ -348,7 +348,7 @@ Example format:
 - [specific action]: [who/what/where]
 - Source: [Retailer Name] ([country]) — [url]"""
         response = _groq_client.chat.completions.create(
-            model="qwen/qwen3-32b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7,
@@ -366,7 +366,7 @@ def _build_product_desc(term: str) -> str:
     try:
         prompt = f"""In one sentence of 20 words or fewer, describe what "{term}" is and name its 2-3 main active ingredients or compounds. Write for a non-technical retail buyer. No marketing language."""
         response = _groq_client.chat.completions.create(
-            model="qwen/qwen3-32b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=60,
             temperature=0.3,
@@ -481,7 +481,7 @@ Keep answers concise and clear. Include relevant links from the search results w
 
     try:
         response = _groq_client.chat.completions.create(
-            model="qwen/qwen3-32b",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": system_prompt},
                 *payload.messages,
