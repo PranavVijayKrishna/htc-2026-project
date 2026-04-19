@@ -126,11 +126,11 @@ function shortDesc(item: Recommendation): string {
 }
 
 const BAR_TOOLTIPS: Record<string, string> = {
-  growth:          'Week-over-week search momentum — how fast consumer interest is rising',
-  relevance:       "How closely this trend matches PoP's ingredient and product portfolio",
-  competition_gap: 'Fewer competing products = larger white-space opportunity for PoP to enter',
-  cross_signal:    'Trend confirmed across multiple sources (Google Trends, Amazon, iHerb)',
-  recency:         'How recent the underlying data is — ensures rankings reflect current market',
+  growth:          'Why it matters: consumer demand is actively rising right now.',
+  relevance:       "Why it matters: aligns with PoP's existing product lines.",
+  competition_gap: 'Why it matters: low competition means a real opening for PoP.',
+  cross_signal:    'Why it matters: trend is confirmed across multiple data sources.',
+  recency:         'Why it matters: signal is current, not stale data.',
 };
 
 const TR = {
@@ -552,7 +552,7 @@ function ListRow({
 
       {/* Sub-scores mini bars */}
       <td className="py-3 px-4 w-24">
-        <div className="flex flex-col gap-1">
+        <div className="relative group/signals flex flex-col gap-1 cursor-default">
           {BARS.map(({ key, color }) => {
             const val = item.components[key as keyof typeof item.components] ?? 0;
             return (
@@ -564,6 +564,42 @@ function ListRow({
               </div>
             );
           })}
+          {/* Tooltip */}
+          <div className="absolute right-0 top-full mt-2 z-50 hidden group-hover/signals:block w-72 bg-[#1e1e2e] text-white text-[11px] rounded-xl shadow-2xl p-3 pointer-events-none">
+            <p className="font-semibold text-white mb-2 text-[10px] uppercase tracking-widest border-b border-white/10 pb-2">{item.term} — SIGNAL BREAKDOWN</p>
+            {(() => {
+              const vals = BARS.map(({ key }) => ({ key, val: item.components[key as keyof typeof item.components] ?? 0 }));
+              const strongest = [...vals].sort((a, b) => b.val - a.val)[0];
+              const weakest   = [...vals].sort((a, b) => a.val - b.val)[0];
+              return (
+                <>
+                  {BARS.map(({ key, label, color }) => {
+                    const val = item.components[key as keyof typeof item.components] ?? 0;
+                    const pct = Math.round(val * 100);
+                    const tag = key === strongest.key ? '↑ top signal' : key === weakest.key ? '↓ lowest' : null;
+                    return (
+                      <div key={key} className="mb-2 last:mb-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <span style={{ color }} className="font-semibold">{label}</span>
+                          <div className="flex items-center gap-1.5">
+                            {tag && <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${key === strongest.key ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{tag}</span>}
+                            <span className="text-gray-300 font-mono">{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-1 mb-1">
+                          <div className="h-1 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                        </div>
+                        <p className="text-gray-400 leading-snug text-[10px]">{BAR_TOOLTIPS[key]}</p>
+                      </div>
+                    );
+                  })}
+                  <div className="mt-2 pt-2 border-t border-white/10 text-gray-400 text-[10px]">
+                    Source: {Array.isArray(item.sources_seen) ? item.sources_seen.join(', ') : item.sources_seen || 'Google Trends'}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </td>
 
